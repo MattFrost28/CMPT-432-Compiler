@@ -18,6 +18,9 @@ export enum TokenType {
     T_WHILE, // while
     T_TYPE, // int, string, boolean
     T_ID, // a-z
+    T_CHAR, // a single character
+    T_SPACE, // ' '
+    T_QUOTE, // "
     T_DIGIT, // 0-9
     T_STRING, // ".*"
     T_EOP // $
