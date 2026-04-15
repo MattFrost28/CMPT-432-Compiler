@@ -1,6 +1,6 @@
 // source/lexer.ts
 
-import { Token, TokenType } from "./token";
+import { Token, TokenType } from "./token.js";
 
 
 // This class is responsible for taking in the source code and producing a list of tokens
@@ -230,7 +230,7 @@ export class Lexer {
             } else if (remaining.startsWith("false")) {
             this.addToken(TokenType.T_BOOLVAL, "false");
             this.advanceN(4); // consume the rest of the keyword
-            
+
             } else {
             // if it's not a keyword, it must be an identifier
             this.addToken(TokenType.T_ID, char);
