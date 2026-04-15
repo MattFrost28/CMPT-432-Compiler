@@ -1,5 +1,6 @@
 // source/compiler.ts
 import { Lexer } from "./lexer.js";
+import { TokenType } from "./token.js";
 // attach the function to global scope so it can be called from the HTML
 window.startCompile = function () {
     // get html elements
@@ -20,7 +21,7 @@ window.startCompile = function () {
     }
     else {
         for (let token of tokenStream) {
-            outputLog.value += `DEBUG Lexer - [${token.value}] found at (${token.line}, ${token.col})\n`;
+            outputLog.value += `DEBUG Lexer - ${TokenType[token.type]} [${token.value}] found at (${token.line}, ${token.col})\n`;
         }
         outputLog.value += `Lexing completed successfully with 0 errors.\n`;
     }
