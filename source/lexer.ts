@@ -11,6 +11,7 @@ export class Lexer {
     col: number = 1;
     tokens: Token[] = [];
     errors: string[] = [];
+    warnings: string[] = [];
 
     constructor(sourceCode: string) {
         this.sourceCode = sourceCode;
@@ -103,7 +104,8 @@ export class Lexer {
 
             // 7. Error Handling for unrecognized characters
             else {
-                this.errors.push(`Unexpected character '${char}' at ${this.line}:${this.col}`);
+                this.errors.push(`Unexpected character '${char}' at ${this.line}:${this.col}. \n`
+                + `FIX: The character '${char}' is not part of the grammar and must be removed or put inside of a string ("...") or comment (/*...*/)`);
                 this.advance();
             }
         }
@@ -163,7 +165,7 @@ export class Lexer {
             this.advance();
         }
         // if we reach the end of the source code without closing the comment, report an error
-        this.errors.push(`Unterminated comment starting at ${this.line}:${this.col}`);
+        this.warnings.push(`Unterminated comment starting at ${this.line}:${this.col}`);
     }
 
     // Helper to consume string literals
@@ -190,7 +192,7 @@ export class Lexer {
             }
         }
         // if we reach the end of the source code without closing the string, report an error
-        this.errors.push(`Unterminated string literal starting at ${this.line}:${this.col}`);
+        this.warnings.push(`Unterminated string literal starting at ${this.line}:${this.col}`);
     }
 
     // Helper to check for keywords and identifiers

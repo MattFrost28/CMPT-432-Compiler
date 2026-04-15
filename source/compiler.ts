@@ -17,6 +17,14 @@ import { TokenType } from "./token.js";
     let myLexer = new Lexer(sourceInput);
     let tokenStream = myLexer.lex();
 
+    // print lexer warnings to the output log
+    if (myLexer.warnings.length > 0) {
+        for (let warning of myLexer.warnings) {
+            outputLog.value += `WARNING Lexer - ${warning}\n`;
+        }
+    }
+
+
     // print the tokens to the output log
     if (myLexer.errors.length > 0) {
         for (let error of myLexer.errors) {
