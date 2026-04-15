@@ -202,27 +202,35 @@ export class Lexer {
         if (remaining.startsWith("print")) {
             this.addToken(TokenType.T_PRINT, "print");
             this.advanceN(4); // consume the rest of the keyword
+
             } else if (remaining.startsWith("while")) {
             this.addToken(TokenType.T_WHILE, "while");
             this.advanceN(4); // consume the rest of the keyword
+
             } else if (remaining.startsWith("if")) {
             this.addToken(TokenType.T_IF, "if");
             this.advanceN(1); // consume the rest of the keyword
+
             } else if (remaining.startsWith("int")) {
             this.addToken(TokenType.T_TYPE, "int");
             this.advanceN(2); // consume the rest of the keyword
+
             } else if (remaining.startsWith("string")) {
             this.addToken(TokenType.T_TYPE, "string");
             this.advanceN(5); // consume the rest of the keyword
+
             } else if (remaining.startsWith("boolean")) {
             this.addToken(TokenType.T_TYPE, "boolean");
             this.advanceN(6); // consume the rest of the keyword
+
             } else if (remaining.startsWith("true")) {
             this.addToken(TokenType.T_BOOLVAL, "true");
             this.advanceN(3); // consume the rest of the keyword
+
             } else if (remaining.startsWith("false")) {
             this.addToken(TokenType.T_BOOLVAL, "false");
             this.advanceN(4); // consume the rest of the keyword
+            
             } else {
             // if it's not a keyword, it must be an identifier
             this.addToken(TokenType.T_ID, char);
