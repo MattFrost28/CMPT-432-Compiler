@@ -57,6 +57,10 @@ import { TokenType } from "./token.js";
         }  
     }
 
+    if (currentProgramTokens.length > 0) {
+        outputLog.value += `\nWARNING Lexer - Found ${currentProgramTokens.length} token(s) at the end of file missing an EOP ($) token. Ignoring. \n`;
+    }
+
 
 
 

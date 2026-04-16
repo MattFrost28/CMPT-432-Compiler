@@ -12,6 +12,12 @@ window.startCompile = function () {
     // create a new lexer and lex the input
     let myLexer = new Lexer(sourceInput);
     let tokenStream = myLexer.lex();
+    // print lexer warnings to the output log
+    if (myLexer.warnings.length > 0) {
+        for (let warning of myLexer.warnings) {
+            outputLog.value += `WARNING Lexer - ${warning}\n`;
+        }
+    }
     // print the tokens to the output log
     if (myLexer.errors.length > 0) {
         for (let error of myLexer.errors) {
@@ -36,6 +42,9 @@ window.startCompile = function () {
             currentProgramTokens = [];
             programCount++;
         }
+    }
+    if (currentProgramTokens.length > 0) {
+        outputLog.value += `\nWARNING Lexer - Found ${currentProgramTokens.length} token(s) at the end of file missing an EOP ($) token. Ignoring. \n`;
     }
     // } else {
     //     for (let token of tokenStream) {
