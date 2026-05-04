@@ -60,5 +60,52 @@ export class Parser {
             this.log(`Parsing completed with ${this.errorCount} error(s).`);
         }
     }
-    
+
+    // Grammar Rules are Here
+    private parseProgram(): void {
+        this.log("parseProgram()")
+
+        // A Program is a Block followed by an EOP token
+        this.parseBlock();
+    }
+
+    private parseBlock(): void {
+        this.log("parseBlock()")
+        this.cst.addNode("Block", "branch");
+
+        // A Block is: { StatementList }
+        this.match(TokenType.T_LBRACE);
+        this.parseStatementList();
+        this.match(TokenType.T_RBRACE);
+
+        //block is finished
+        this.cst.endChildren();
+    }
+
+    private parseStatementList(): void {
+        this.log("parseStatementList()")
+        this.cst.addNode("StatementList", "branch");
+
+        // check to see if we have a statement or if the list is empty
+        let tType = this.currentToken.type;
+
+        // A Statement can start with a print, a type, while, if, an ID, or a block
+        if (tType === TokenType.T_PRINT ||
+            tType === TokenType.T_TYPE ||
+            tType === TokenType.T_WHILE ||
+            tType === TokenType.T_IF ||
+            tType === TokenType.T_ID ||
+            tType === TokenType.T_LBRACE) {
+                
+                // parse the statement
+                this.parseStatement();
+
+                // call parse statement list to see if there are more statements
+                this.parseStatementList();
+        } else {
+            // empty, probably hit a closing brace or something else that isnt a statement, so function naturally ends
+        }
+
+        this.cst.endChildren();
+    }
 }
