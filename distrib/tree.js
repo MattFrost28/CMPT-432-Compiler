@@ -51,7 +51,7 @@ export class Tree {
             }
             // if its a leaf put value in brackets
             if (node.isLeaf) {
-                traversalresult += `${node.name}\n`;
+                traversalresult += `[${node.name}]\n`;
             }
             else {
                 // if its a branch print in angle brackets
