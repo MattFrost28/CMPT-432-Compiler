@@ -58,7 +58,14 @@ import { TokenType } from "./token.js";
     }
 
     if (currentProgramTokens.length > 0) {
-        outputLog.value += `\nWARNING Lexer - Found ${currentProgramTokens.length} token(s) at the end of file missing an EOP ($) token. Ignoring. \n`;
+        outputLog.value += `\nWARNING Lexer - Found ${currentProgramTokens.length} token(s) at the end of file missing an EOP ($) token. Auto-correcting and generating tokens... \n`;
+        outputLog.value += `\nINFO Lexer - Lexing program ${programCount}...\n`;
+
+        // print the remaining tokens
+        for (let t of currentProgramTokens) {
+            outputLog.value += `DEBUG Lexer - ${TokenType[t.type]} [${t.value}] found at (${t.line}, ${t.col})\n`;
+        }
+        outputLog.value += `Lexing completed for program ${programCount} with 0 errors.\n`;
     }
 
 
