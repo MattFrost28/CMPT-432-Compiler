@@ -181,6 +181,12 @@ export class Lexer {
                 return; // exit the string
             }
 
+            // stop the string literal if we encounter a newline (unterminated string)
+            if (char === '\n') {
+                this.warnings.push(`Unterminated string literal ending at ${this.line}:${this.col}`);
+                return;
+            }
+
             // ensure only lowercase letters and spaces are allowed in strings
             if (/[a-z]/.test(char)) {
                 this.addToken(TokenType.T_CHAR, char);
