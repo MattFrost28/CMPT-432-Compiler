@@ -85,5 +85,34 @@ export class Parser {
         }
         this.cst.endChildren();
     }
+    parseStatement() {
+        this.log("parseStatement()");
+        this.cst.addNode("Statement", "branch");
+        let tType = this.currentToken.type;
+        if (tType === TokenType.T_PRINT) {
+            this.parsePrintStatement();
+        }
+        else if (tType === TokenType.T_TYPE) {
+            this.parseVarDecl();
+        }
+        else if (tType === TokenType.T_WHILE) {
+            this.parseWhileStatement();
+        }
+        else if (tType === TokenType.T_IF) {
+            this.parseIfStatement();
+        }
+        else if (tType === TokenType.T_ID) {
+            this.parseAssignStatement();
+        }
+        else if (tType === TokenType.T_LBRACE) {
+            this.parseBlock();
+        }
+        else {
+            // should not get here since valid statements are already checked for
+            this.parseLog.push(`PARSER ERROR: Expected Stament start, found ${TokenType[tType]}`);
+            this.errorCount++;
+        }
+        this.cst.endChildren();
+    }
 }
 //# sourceMappingURL=parser.js.map
