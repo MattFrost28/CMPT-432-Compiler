@@ -194,6 +194,65 @@ export class Parser {
         this.cst.endChildren();
     }
 
+    //parse assignment statement: Id = Expr
+    private parseAssignStatement(): void {
+        this.log("parseAssignStatement()")
+        this.cst.addNode("AssignStatement", "branch");
+
+        // rule: assignStatement = Id = Expr
+        this.match(TokenType.T_ID);
+        this.match(TokenType.T_ASSIGN);
+        this.parseExpr();
+
+        this.cst.endChildren();
+    }
+
+    // parse while statement: while BooleanExpr Block
+    private parseWhileStatement(): void {
+        this.log("parseWhileStatement()")
+        this.cst.addNode("WhileStatement", "branch");
+
+        // rule: whileStatement = while BooleanExpr Block
+        this.match(TokenType.T_WHILE);
+        this.parseBooleanExpr();
+        this.parseBlock();
+
+        this.cst.endChildren();
+    }
+
+    // parse if statement: if BooleanExpr Block
+    private parseIfStatement(): void {
+        this.log("parseIfStatement()")
+        this.cst.addNode("IfStatement", "branch");
+
+        // rule: ifStatement = if BooleanExpr Block
+        this.match(TokenType.T_IF);
+        this.parseBooleanExpr();
+        this.parseBlock();
+
+        this.cst.endChildren();
+    }
+
+    private parseBooleanExpr(): void {
+        this.log("parseBooleanExpr()")
+        this.cst.addNode("BooleanExpr", "branch");
+
+        let tType = this.currentToken.type;
+
+        //boolean can be true/false or a comparison between two expressions
+        if (tType === TokenType.T_BOOLVAL) {
+            this.match(TokenType.T_BOOLVAL);
+        } else if (tType === TokenType.T_LPAREN) {
+            this.match(TokenType.T_LPAREN);
+            this.parseExpr();
+            this.match(TokenType.T_BOOLOP);
+            this.parseExpr();
+            this.match(TokenType.T_RPAREN);
+        }
+
+        this.cst.endChildren();
+    }
+
 
 
 }
