@@ -183,16 +183,15 @@ export class Parser {
             this.match(TokenType.T_DIGIT);
         } else if (tType === TokenType.T_QUOTE) {
             this.match(TokenType.T_QUOTE);
+        
+            while (this.currentToken.type !== TokenType.T_QUOTE && this.tokenIndex < this.tokens.length) {
+                this.match(this.currentToken.type);
+            }
+            if (this.currentToken.type === TokenType.T_QUOTE) {
+                this.match(TokenType.T_QUOTE);
+            }
         }
-        while (this.currentToken.type !== TokenType.T_QUOTE && this.tokenIndex < this.tokens.length) {
-            this.match(this.currentToken.type);
-        }
-        if (this.currentToken.type === TokenType.T_QUOTE) {
-            this.match(TokenType.T_QUOTE);
-        }
-    
         this.cst.endChildren();
-
     }
 
 
