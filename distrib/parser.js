@@ -114,5 +114,49 @@ export class Parser {
         }
         this.cst.endChildren();
     }
+    // specific statement parsing functions
+    // parse the print statement: print(Expr)
+    parsePrintStatement() {
+        this.log("parsePrintStatement()");
+        this.cst.addNode("PrintStatement", "branch");
+        // rule: printstatement = print(Expr)
+        this.match(TokenType.T_PRINT);
+        this.match(TokenType.T_LPAREN);
+        // go into expression rule
+        this.parseExpr();
+        this.match(TokenType.T_RPAREN);
+        this.cst.endChildren();
+    }
+    //parse variable declaration: type Id
+    parseVarDecl() {
+        this.log("parseVarDecl()");
+        this.cst.addNode("VarDecl", "branch");
+        // rule: varDecl = type Id
+        this.match(TokenType.T_TYPE);
+        this.match(TokenType.T_ID);
+        this.cst.endChildren();
+    }
+    // expression rules
+    parseExpr() {
+        this.log("parseExpr()");
+        this.cst.addNode("Expr", "branch");
+        let tType = this.currentToken.type;
+        if (tType === TokenType.T_ID) {
+            this.match(TokenType.T_ID);
+        }
+        else if (tType === TokenType.T_DIGIT) {
+            this.match(TokenType.T_DIGIT);
+        }
+        else if (tType === TokenType.T_QUOTE) {
+            this.match(TokenType.T_QUOTE);
+        }
+        while (this.currentToken.type !== TokenType.T_QUOTE && this.tokenIndex < this.tokens.length) {
+            this.match(this.currentToken.type);
+        }
+        if (this.currentToken.type === TokenType.T_QUOTE) {
+            this.match(TokenType.T_QUOTE);
+        }
+        this.cst.endChildren();
+    }
 }
 //# sourceMappingURL=parser.js.map
