@@ -81,8 +81,32 @@ export class SemanticAnalyzer {
             this.buildAST(cstNode.children[2]); //block
             this.ast.endChildren();
         }
+        else if (name === "IntExpr") {
+            // IntExpr -> digit intop Expr | digit
+            if (cstNode.children.length > 1) {
+                this.ast.addNode("Plus", "branch");
+                this.buildAST(cstNode.children[0]); // Digit
+                this.buildAST(cstNode.children[2]); //rest of the Expr
+                this.ast.endChildren();
+            } else {
+                this.buildAST(cstNode.children[0]); //the digit
+            }
+        }
+        else if (name === "BooleanExpr") {
+            // BooleanExpr -> ( Expr boolop Expr ) | boolean
+            if (cstNode.children.length > 1) {
+                // grab the operator
+                let operator = cstNode.children[2].children[0].name;
+                this.ast.addNode(operator, "branch");
+                this.buildAST(cstNode.children[1]); //left expr
+                this.buildAST(cstNode.children[3]); //right expr
+                this.ast.endChildren();
+            } else {
+                this.buildAST(cstNode.children[0]); //true/false
+            }
+        }
         //other nodes we don't care about for the AST but the children are still processed
-        else if (name === "Program" || name === "StatementList" || name === "Statement" || name === "Expr") {
+        else if (name === "Program" || name === "StatementList" || name === "Statement" || name === "Expr" || name === "StringExpr" || name === "CharList") {
             // just process the children, don't add to the AST
             for (let child of cstNode.children) {
                 this.buildAST(child);
@@ -91,7 +115,7 @@ export class SemanticAnalyzer {
         //leaf nodes that we do care about
         else if (cstNode.isLeaf) {
             //ignore things such as braces, parens, prints, etc
-            let ignoreList = ["{", "}", "(", ")", "print", "while", "if", "int", "string", "boolean", "$"];
+            let ignoreList = ["{", "}", "(", ")", '"', "=", "print", "while", "if", "int", "string", "boolean", "$"];
             if (!ignoreList.includes(name)) {
                 this.ast.addNode(name, "leaf");
             }
