@@ -1,6 +1,7 @@
 // source/compiler.ts
 import { Lexer } from "./lexer.js";
-import { TokenType } from "./token.js";
+import { Token, TokenType } from "./token.js";
+import { Parser } from "./parser.js";
 
 // attach the function to global scope so it can be called from the HTML
 (window as any).startCompile = function() {
@@ -51,21 +52,67 @@ import { TokenType } from "./token.js";
             }
             outputLog.value += `Lexing completed for program ${programCount} with 0 errors.\n`;
 
+            // start parsing the current program
+            outputLog.value += `\nINFO Parser - Parsing program ${programCount}...\n`;
+            let myParser = new Parser(currentProgramTokens);
+            myParser.parse();
+
+            // print the parser log
+            for (let logMsg of myParser.parseLog) {
+                outputLog.value += `${logMsg}\n`;
+            }
+
+            // print the CST if there were no errors
+            if (myParser.errorCount === 0) {
+                outputLog.value += `\nParse completed for program ${programCount} with 0 errors.\n`;
+                outputLog.value += `\n--- Concrete Syntax Tree (Program ${programCount}) ---\n`;
+                outputLog.value += myParser.cst.toString();
+                outputLog.value += `\n-----------------------------------------------\n`;
+            } else {
+                outputLog.value += `\nParse failed for program ${programCount} with ${myParser.errorCount} error(s). CST not generated.\n`;
+            }
+
             // reset for next program
             currentProgramTokens = [];
             programCount++;
         }  
     }
 
+
+    // warning block
+
     if (currentProgramTokens.length > 0) {
         outputLog.value += `\nWARNING Lexer - Found ${currentProgramTokens.length} token(s) at the end of file missing an EOP ($) token. Auto-correcting and generating tokens... \n`;
         outputLog.value += `\nINFO Lexer - Lexing program ${programCount}...\n`;
+        
+        // add an EOP token to the end of the file if it was missing
+        let lastT = currentProgramTokens[currentProgramTokens.length - 1];
+        let fakeEOP = new Token(TokenType.T_EOP, "$", lastT.line, lastT.col + 1);
+        currentProgramTokens.push(fakeEOP);
 
         // print the remaining tokens
         for (let t of currentProgramTokens) {
             outputLog.value += `DEBUG Lexer - ${TokenType[t.type]} [${t.value}] found at (${t.line}, ${t.col})\n`;
         }
         outputLog.value += `Lexing completed for program ${programCount} with 0 errors.\n`;
+
+        // run tokens through the parser
+        outputLog.value += `\nINFO Parser - Parsing program ${programCount}...\n`;
+        let myParser = new Parser(currentProgramTokens);
+        myParser.parse();
+
+        for (let logMsg of myParser.parseLog) {
+            outputLog.value += `${logMsg}\n`;
+        }
+
+        if (myParser.errorCount === 0) {
+            outputLog.value += `\nParse completed for program ${programCount} with 0 errors.\n`;
+            outputLog.value += `\n--- Concrete Syntax Tree (Program ${programCount}) ---\n`;
+            outputLog.value += myParser.cst.toString();
+            outputLog.value += `\n-----------------------------------------------\n`;
+        } else {
+            outputLog.value += `\nParse failed for program ${programCount} with ${myParser.errorCount} error(s). CST not generated.\n`;
+        }
     }
 
 
@@ -77,6 +124,7 @@ import { TokenType } from "./token.js";
     //     }
     //     outputLog.value += `Lexing completed successfully with 0 errors.\n`;
     // }
+    
 }
 
 

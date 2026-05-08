@@ -173,24 +173,77 @@ export class Parser {
 
     // expression rules
     private parseExpr(): void {
-        this.log("parseExpr()")
+        this.log("parseExpr()");
         this.cst.addNode("Expr", "branch");
 
         let tType = this.currentToken.type;
-        if (tType === TokenType.T_ID) {
+
+        if (tType === TokenType.T_DIGIT) {
+            this.parseIntExpr();
+        } 
+        else if (tType === TokenType.T_QUOTE) {
+            this.parseStringExpr();
+        } 
+        else if (tType === TokenType.T_LPAREN || tType === TokenType.T_BOOLVAL) {
+            this.parseBooleanExpr();
+        } 
+        else if (tType === TokenType.T_ID) {
+            // expr can also just be an identifier by itself
             this.match(TokenType.T_ID);
-        } else if (tType === TokenType.T_DIGIT) {
-            this.match(TokenType.T_DIGIT);
-        } else if (tType === TokenType.T_QUOTE) {
-            this.match(TokenType.T_QUOTE);
-        
-            while (this.currentToken.type !== TokenType.T_QUOTE && this.tokenIndex < this.tokens.length) {
-                this.match(this.currentToken.type);
-            }
-            if (this.currentToken.type === TokenType.T_QUOTE) {
-                this.match(TokenType.T_QUOTE);
-            }
+        } 
+        else {
+            this.parseLog.push(`PARSER ERROR: Expected Expression, found ${TokenType[tType]} [${this.currentToken.value}] at (${this.currentToken.line}:${this.currentToken.col})`);
+            this.errorCount++;
         }
+
+        this.cst.endChildren();
+    }
+
+    private parseIntExpr(): void {
+        this.log("parseIntExpr()")
+        this.cst.addNode("IntExpr", "branch");
+
+        // IntExpr -> digit intop Expr | digit
+        this.match(TokenType.T_DIGIT);
+
+        // check if we have an intop to continue the expression
+        if (this.currentToken.type === TokenType.T_INTOP) {
+            this.match(TokenType.T_INTOP);
+            this.parseExpr();
+        }
+
+        this.cst.endChildren();
+    }
+
+    private parseStringExpr(): void {
+        this.log("parseStringExpr()")
+        this.cst.addNode("StringExpr", "branch");
+
+        // StringExpr -> " CharList "
+        this.match(TokenType.T_QUOTE);
+        this.parseCharList();
+        this.match(TokenType.T_QUOTE);
+
+        this.cst.endChildren();
+    }
+
+    private parseCharList(): void {
+        this.log("parseCharList()")
+        this.cst.addNode("CharList", "branch");
+
+        // CharList -> char CharList | space CharList | epsilon
+        if (this.currentToken.type === TokenType.T_CHAR) {
+            this.match(TokenType.T_CHAR);
+            this.parseCharList();
+        }
+        else if (this.currentToken.type === TokenType.T_SPACE) {
+            this.match(TokenType.T_SPACE);
+            this.parseCharList();
+        }
+        else {
+            // epsilon, hit closing quote
+        }
+
         this.cst.endChildren();
     }
 
@@ -239,15 +292,20 @@ export class Parser {
 
         let tType = this.currentToken.type;
 
-        //boolean can be true/false or a comparison between two expressions
-        if (tType === TokenType.T_BOOLVAL) {
-            this.match(TokenType.T_BOOLVAL);
-        } else if (tType === TokenType.T_LPAREN) {
+        //BooleanExpr -> boolval | (Expr boolop Expr)
+        if (tType === TokenType.T_LPAREN) {
             this.match(TokenType.T_LPAREN);
             this.parseExpr();
             this.match(TokenType.T_BOOLOP);
             this.parseExpr();
             this.match(TokenType.T_RPAREN);
+        } 
+        else if (tType === TokenType.T_BOOLVAL) {
+            this.match(TokenType.T_BOOLVAL);
+        } 
+        else {
+            this.parseLog.push(`PARSER ERROR: Expected Boolean Expression, found ${TokenType[tType]}`);
+            this.errorCount++;
         }
 
         this.cst.endChildren();
