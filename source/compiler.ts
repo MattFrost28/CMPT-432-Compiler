@@ -2,6 +2,7 @@
 import { Lexer } from "./lexer.js";
 import { Token, TokenType } from "./token.js";
 import { Parser } from "./parser.js";
+import { SemanticAnalyzer } from "./semantic.js";
 
 // attach the function to global scope so it can be called from the HTML
 (window as any).startCompile = function() {
@@ -68,6 +69,27 @@ import { Parser } from "./parser.js";
                 outputLog.value += `\n--- Concrete Syntax Tree (Program ${programCount}) ---\n`;
                 outputLog.value += myParser.cst.toString();
                 outputLog.value += `\n-----------------------------------------------\n`;
+
+                // run semantic analysis on the CST
+                outputLog.value += `\nINFO Semantic Analyzer - Analyzing program ${programCount}...\n`;
+                let mySemantic = new SemanticAnalyzer(myParser.cst);
+                mySemantic.analyze();
+
+                //print the semantic log
+                for (let logMsg of mySemantic.semanticLog) {
+                    outputLog.value += `${logMsg}\n`;
+                }
+
+                //print the AST if there are no errors
+                if (mySemantic.errorCount === 0) {
+                    outputLog.value += `\nSemantic analysis completed for program ${programCount} with 0 errors and ${mySemantic.warningCount} warning(s).\n`;
+                    outputLog.value += `\n--- Abstract Syntax Tree (Program ${programCount}) ---\n`;
+                    outputLog.value += mySemantic.ast.toString();
+                    outputLog.value += `\n-----------------------------------------------\n`;
+                } else {
+                    outputLog.value += `\nSemantic analysis failed for program ${programCount} with ${mySemantic.errorCount} error(s). AST not generated.\n`;
+                }                  
+
             } else {
                 outputLog.value += `\nParse failed for program ${programCount} with ${myParser.errorCount} error(s). CST not generated.\n`;
             }
@@ -110,6 +132,26 @@ import { Parser } from "./parser.js";
             outputLog.value += `\n--- Concrete Syntax Tree (Program ${programCount}) ---\n`;
             outputLog.value += myParser.cst.toString();
             outputLog.value += `\n-----------------------------------------------\n`;
+
+            // run semantic analysis on the CST
+            outputLog.value += `\nINFO Semantic Analyzer - Analyzing program ${programCount}...\n`;
+            let mySemantic = new SemanticAnalyzer(myParser.cst);
+            mySemantic.analyze();
+
+            //print the semantic log
+            for (let logMsg of mySemantic.semanticLog) {
+                outputLog.value += `${logMsg}\n`;
+            }
+
+            //print the AST if there are no errors
+            if (mySemantic.errorCount === 0) {
+                outputLog.value += `\nSemantic analysis completed for program ${programCount} with 0 errors and ${mySemantic.warningCount} warning(s).\n`;
+                outputLog.value += `\n--- Abstract Syntax Tree (Program ${programCount}) ---\n`;
+                outputLog.value += mySemantic.ast.toString();
+                outputLog.value += `\n-----------------------------------------------\n`;
+            } else {
+                outputLog.value += `\nSemantic analysis failed for program ${programCount} with ${mySemantic.errorCount} error(s). AST not generated.\n`;
+            }
         } else {
             outputLog.value += `\nParse failed for program ${programCount} with ${myParser.errorCount} error(s). CST not generated.\n`;
         }
