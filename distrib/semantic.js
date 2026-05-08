@@ -85,7 +85,7 @@ export class SemanticAnalyzer {
             // BooleanExpr -> ( Expr boolop Expr ) | boolean
             if (cstNode.children.length > 1) {
                 // grab the operator
-                let operator = cstNode.children[2].children[0].name;
+                let operator = cstNode.children[2].name;
                 this.ast.addNode(operator, "branch");
                 this.buildAST(cstNode.children[1]); //left expr
                 this.buildAST(cstNode.children[3]); //right expr
