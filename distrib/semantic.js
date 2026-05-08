@@ -1,0 +1,95 @@
+// source/semantic.ts
+import { Tree } from "./tree.js";
+export class SemanticAnalyzer {
+    constructor(cst) {
+        this.semanticLog = [];
+        this.errorCount = 0;
+        this.warningCount = 0;
+        this.cst = cst;
+        this.ast = new Tree();
+    }
+    log(message) {
+        this.semanticLog.push(`DEBUG Semantic - ${message}`);
+    }
+    // entry for semantic analysis
+    analyze() {
+        this.log("Starting Semantic Analysis...");
+        //build the AST from the CST
+        this.log("Building Abstract Syntax Tree (AST)...");
+        if (this.cst.root) {
+            this.buildAST(this.cst.root);
+        }
+        this.log(`Semantic Analysis complete with ${this.errorCount} error(s) and ${this.warningCount} warning(s).`);
+    }
+    // ast generation
+    buildAST(cstNode) {
+        // look at the name of the node of the CST and decide how to process it
+        let name = cstNode.name;
+        //branch nodes we care about for the AST
+        if (name === "Block") {
+            this.ast.addNode("Block", "branch");
+            // process the children of the block
+            for (let child of cstNode.children) {
+                this.buildAST(child);
+            }
+            this.ast.endChildren();
+        }
+        else if (name === "VarDecl") {
+            this.ast.addNode("VarDecl", "branch");
+            // var decl has two children, type and id
+            this.ast.addNode(cstNode.children[0].name, "leaf"); //the type
+            this.ast.addNode(cstNode.children[1].name, "leaf"); //the id
+            this.ast.endChildren();
+        }
+        else if (name === "PrintStatement") {
+            this.ast.addNode("Print", "branch");
+            // the expression to print is in thte third child
+            // (0 is print, 1 is the open paren, 2 is the expression, 3 is the close paren)
+            this.buildAST(cstNode.children[2]);
+            this.ast.endChildren();
+        }
+        else if (name === "AssignStatement") {
+            this.ast.addNode("Assign", "branch");
+            //(0 is the id, 1 is the equals sign, 2 is the expression)
+            this.ast.addNode(cstNode.children[0].name, "leaf"); //id
+            this.buildAST(cstNode.children[2]); //expression
+            this.ast.endChildren();
+        }
+        else if (name === "WhileStatement") {
+            this.ast.addNode("While", "branch");
+            // While -> (0 is while, 1 is the open paren, 2 is the condition expression)
+            this.buildAST(cstNode.children[1]); //booleanexpr
+            this.buildAST(cstNode.children[2]); //block
+            this.ast.endChildren();
+        }
+        else if (name === "IfStatement") {
+            this.ast.addNode("If", "branch");
+            // If -> if BooleanExpr Block
+            this.buildAST(cstNode.children[1]); //booleanexpr
+            this.buildAST(cstNode.children[2]); //block
+            this.ast.endChildren();
+        }
+        //other nodes we don't care about for the AST but the children are still processed
+        else if (name === "Program" || name === "StatementList" || name === "Statement" || name === "Expr") {
+            // just process the children, don't add to the AST
+            for (let child of cstNode.children) {
+                this.buildAST(child);
+            }
+        }
+        //leaf nodes that we do care about
+        else if (cstNode.isLeaf) {
+            //ignore things such as braces, parens, prints, etc
+            let ignoreList = ["{", "}", "(", ")", "print", "while", "if", "int", "string", "boolean", "$"];
+            if (!ignoreList.includes(name)) {
+                this.ast.addNode(name, "leaf");
+            }
+        }
+        else {
+            // for any other nodes we don't recognize, just process the children
+            for (let child of cstNode.children) {
+                this.buildAST(child);
+            }
+        }
+    }
+}
+//# sourceMappingURL=semantic.js.map
