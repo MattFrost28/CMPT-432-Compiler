@@ -105,8 +105,24 @@ export class SemanticAnalyzer {
                 this.buildAST(cstNode.children[0]); //true/false
             }
         }
+        else if (name === "StringExpr") {
+            let fullString = "";
+            
+            //function to dig through the CharLists and grab the characters
+            const extractString = (node: TreeNode) => {
+                if (node.isLeaf && node.name !== '"') {
+                    fullString += node.name;
+                }
+                for (let child of node.children) {
+                    extractString(child);
+                }
+            };
+            
+            extractString(cstNode);
+            this.ast.addNode(fullString, "leaf");
+        }
         //other nodes we don't care about for the AST but the children are still processed
-        else if (name === "Program" || name === "StatementList" || name === "Statement" || name === "Expr" || name === "StringExpr" || name === "CharList") {
+        else if (name === "Program" || name === "StatementList" || name === "Statement" || name === "Expr") {
             // just process the children, don't add to the AST
             for (let child of cstNode.children) {
                 this.buildAST(child);
