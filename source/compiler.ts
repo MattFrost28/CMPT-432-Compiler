@@ -3,6 +3,7 @@ import { Lexer } from "./lexer.js";
 import { Token, TokenType } from "./token.js";
 import { Parser } from "./parser.js";
 import { SemanticAnalyzer } from "./semantic.js";
+import { CodeGenerator } from "./codegen.js";
 
 // attach the function to global scope so it can be called from the HTML
 (window as any).startCompile = function() {
@@ -86,6 +87,21 @@ import { SemanticAnalyzer } from "./semantic.js";
                     outputLog.value += `\n--- Abstract Syntax Tree (Program ${programCount}) ---\n`;
                     outputLog.value += mySemantic.ast.toString();
                     outputLog.value += `\n-----------------------------------------------\n`;
+
+                    // start code generation phase
+                    outputLog.value += `\nINFO CodeGen - Generating machine code for program ${programCount}...\n`;
+
+                    let myCodeGenerator = new CodeGenerator(mySemantic.ast, mySemantic.symbolTable);
+                    myCodeGenerator.generate();
+
+                    for (let logMsg of myCodeGenerator.codeLog) {
+                        outputLog.value += `${logMsg}\n`;
+                    }
+
+                    outputLog.value += `\n--- Executable Machine Code (Program ${programCount}) ---\n`;
+                    outputLog.value += myCodeGenerator.getExecutableString() + "\n";
+                    outputLog.value += `------------------------------------------------\n`;
+
                 } else {
                     outputLog.value += `\nSemantic analysis failed for program ${programCount} with ${mySemantic.errorCount} error(s). AST not generated.\n`;
                 }                  
@@ -149,6 +165,20 @@ import { SemanticAnalyzer } from "./semantic.js";
                 outputLog.value += `\n--- Abstract Syntax Tree (Program ${programCount}) ---\n`;
                 outputLog.value += mySemantic.ast.toString();
                 outputLog.value += `\n-----------------------------------------------\n`;
+
+                // start code generation phase
+                    outputLog.value += `\nINFO CodeGen - Generating machine code for program ${programCount}...\n`;
+
+                    let myCodeGenerator = new CodeGenerator(mySemantic.ast, mySemantic.symbolTable);
+                    myCodeGenerator.generate();
+
+                    for (let logMsg of myCodeGenerator.codeLog) {
+                        outputLog.value += `${logMsg}\n`;
+                    }
+
+                    outputLog.value += `\n--- Executable Machine Code (Program ${programCount}) ---\n`;
+                    outputLog.value += myCodeGenerator.getExecutableString() + "\n";
+                    outputLog.value += `------------------------------------------------\n`;
             } else {
                 outputLog.value += `\nSemantic analysis failed for program ${programCount} with ${mySemantic.errorCount} error(s). AST not generated.\n`;
             }
