@@ -332,6 +332,91 @@ export class CodeGenerator {
             }
         }
 
+        //while loops
+        else if (name === "While") {
+            let conditionNode = node.children[0];
+            let blockNode = node.children[1];
+
+            if (conditionNode.name === "==" || conditionNode.name === "!=") {
+                let leftVar = conditionNode.children[0].name;  
+                let rightVal = conditionNode.children[1].name; 
+
+                let condAddress = this.staticTable.get(leftVar)!;
+
+                //mark start of loop
+                let loopStartIndex = this.codePointer;
+
+                //evaluate condition
+                this.addInstruction("A2"); // LDX
+                if (/^[0-9]$/.test(rightVal)) {
+                    this.addInstruction("0" + rightVal); // Load digit
+                } else {
+                    let hexValue = rightVal === "true" ? "01" : "00";
+                    this.addInstruction(hexValue); // Load boolean
+                }
+
+                this.addInstruction("EC"); // CPX
+                this.addInstruction(condAddress);
+                this.addInstruction("XX");
+
+                let exitJumpIndex: number = 0;
+
+                //escape when not equal
+                if (conditionNode.name === "==") {
+                    this.addInstruction("D0"); // BNE
+                    let exitJumpId = "J" + this.jumpCount;
+                    this.jumpCount++;
+                    this.addInstruction(exitJumpId); 
+                    exitJumpIndex = this.codePointer - 1;
+                }
+                else if (conditionNode.name === "!=") {
+                    //if not equal, jump 7 bytes forward
+                    this.addInstruction("D0"); // BNE
+                    this.addInstruction("07"); // Skip 7 bytes
+
+                    //only triggers if equal
+                    // use this to jump out of the look
+                    this.addInstruction("A2"); // LDX
+                    this.addInstruction("01"); 
+                    this.addInstruction("EC"); // CPX
+                    this.addInstruction("FF"); 
+                    this.addInstruction("00"); 
+                    this.addInstruction("D0"); // BNE
+                    
+                    let exitJumpId = "J" + this.jumpCount;
+                    this.jumpCount++;
+                    this.addInstruction(exitJumpId); 
+                    exitJumpIndex = this.codePointer - 1;
+                
+                }
+
+                //generate code
+                this.generateNode(blockNode);
+
+                //make jump happen by comparing 1 to the last address
+                this.addInstruction("A2"); // LDX
+                this.addInstruction("01"); 
+                this.addInstruction("EC"); // CPX
+                this.addInstruction("FF"); // Memory address 00FF
+                this.addInstruction("00");
+
+                this.addInstruction("D0"); // BNE
+
+                //calculate the backwards jump
+                let currentOffset = this.codePointer + 1; 
+                let backwardDistance = currentOffset - loopStartIndex;
+                let hexBackward = (256 - backwardDistance).toString(16).toUpperCase().padStart(2, "0");
+                this.addInstruction(hexBackward);
+
+                //backpatch the jump
+                let forwardDistance = this.codePointer - (exitJumpIndex + 1);
+                let hexForward = forwardDistance.toString(16).toUpperCase().padStart(2, "0");
+                this.executable[exitJumpIndex] = hexForward;
+
+                this.log(`Generated code for While Loop: Rewinds ${hexBackward}, Exits forward ${hexForward}`);
+            }
+        }
+
         else {
             for (let child of node.children) {
                 this.generateNode(child);
