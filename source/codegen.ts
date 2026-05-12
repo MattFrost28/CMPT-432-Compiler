@@ -14,6 +14,7 @@ export class CodeGenerator {
     staticTable: Map<string, string> = new Map();
     typeTable: Map<string, string> = new Map();
     tempCount: number = 0;
+    jumpCount: number = 0;
 
     codeLog: string[] = [];
 
@@ -264,6 +265,70 @@ export class CodeGenerator {
                 this.addInstruction("FF"); // SYS call
 
                 this.log(`Generated code for Print: ${varType} variable [${exprNode.name}] printed`);
+            }
+
+            //printing a string
+            else if (exprNode.isLeaf && exprNode.name.startsWith('"')) {
+                //put string on heap and get starting add
+                let stringAddress = this.addString(exprNode.name);
+
+                //load y reg with constant address of string
+                this.addInstruction("A0"); //LDY constant
+                this.addInstruction(stringAddress);
+
+                //load X reg with 02 for string printing
+                this.addInstruction("A2"); //LDX
+                this.addInstruction("02");
+
+                this.addInstruction("FF"); //SYS call
+
+                this.log(`Generated code for Print: raw string ${exprNode.name} printed`);
+
+            }
+        }
+        else if (name === "If") {
+            //first child is condition, and second is the block
+            let conditionNode = node.children[0];
+            let blockNode = node.children[1];
+
+            if (conditionNode.name === "==") {
+                let leftVar = conditionNode.children[0].name;  // ex: b
+                let rightVal = conditionNode.children[1].name; // ex: true or false
+                
+                let condAddress = this.staticTable.get(leftVar)!;
+
+                //load x reg with right side, true is 1, false is 0
+                let hexValue = rightVal === "true" ? "01" : "00";
+                this.addInstruction("A2"); // LDX
+                this.addInstruction(hexValue);
+
+                //compare x to left variable
+                this.addInstruction("EC"); // CPX
+                this.addInstruction(condAddress);
+                this.addInstruction("XX");
+
+                //branch on not equal
+                this.addInstruction("D0"); //BNE
+
+                //add a placeholder for jump distance
+                let jumpId = "J" + this.jumpCount;
+                this.jumpCount++;
+                this.addInstruction(jumpId);
+
+                //save index of where jumpId is
+                let jumpIndex = this.codePointer - 1;
+
+                //generate code
+                this.generateNode(blockNode);
+
+                //find jump distance
+                let distance = this.codePointer - (jumpIndex + 1);
+                let hexDistance = distance.toString(16).toUpperCase().padStart(2, "0");
+
+                //backpatch jump distance
+                this.executable[jumpIndex] = hexDistance;
+
+                this.log(`Generated code for If Statement: Jump distance is ${hexDistance} bytes`);
             }
         }
 
