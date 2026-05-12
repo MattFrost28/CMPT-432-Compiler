@@ -222,6 +222,21 @@ export class CodeGenerator {
 
                 this.log(`Generated code for Assign: Addition stored in [${targetId}]`);
             }
+
+            //assigning a boolean value
+            else if (exprNode.isLeaf && (exprNode.name === "true" || exprNode.name === "false")) {
+                //if true it's 1, otherwise it would be 0 (false)
+                let hexValue = exprNode.name === "true" ? "01" : "00";
+
+                this.addInstruction("A9"); //LDA constant
+                this.addInstruction(hexValue);
+
+                this.addInstruction("8D") //STA
+                this.addInstruction(tempAddress);
+                this.addInstruction("XX")
+
+                this.log(`Generated code for Assign: ${targetId} = ${exprNode.name}`)
+            }
         }
         else if (name === "Print") {
             let exprNode = node.children[0];
@@ -239,8 +254,8 @@ export class CodeGenerator {
 
                 this.addInstruction("A2"); // LDX
 
-                //if int, x = 01, if string x = 02
-                if (varType === "int") {
+                //if int or boolean, x = 01, if string x = 02
+                if (varType === "int" || varType === "boolean") {
                     this.addInstruction("01");
                 } else if (varType === "string") {
                     this.addInstruction("02");
