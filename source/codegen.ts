@@ -189,57 +189,20 @@ export class CodeGenerator {
 
             //assigning addition operation
             else if (exprNode.name === "Plus") {
-                let leftNode = exprNode.children[0];
-                let rightNode = exprNode.children[1];
 
-                //temporaruy spot in memory to hold the number
-                let mathTemp = "T" + this.tempCount;
-                this.tempCount++;
+                //use helper function for addition
+                let finalMathAddress = this.processAddition(exprNode);
 
-                //load right side into accumulator
-                if (/^[0-9]$/.test(rightNode.name)) {
-                    //load the number directly
-                    this.addInstruction("A9"); //LDA
-                    this.addInstruction("0" + rightNode.name);
-                } else {
-                    //it's a variable so look up the address
-                    let sym = this.symbolTable.lookupSymbol(rightNode.name);
-                    let rightAddr = sym!.tempAddress;
-                    this.addInstruction("AD") //LDA
-                    this.addInstruction(rightAddr);
-                    this.addInstruction("XX");
-                }
-                
-
-                //store it in temp spot
-                this.addInstruction("8D"); // STA
-                this.addInstruction(mathTemp);
+                //load final answer from temp address of helper
+                this.addInstruction("AD"); // LDA
+                this.addInstruction(finalMathAddress);
                 this.addInstruction("XX");
 
-                //load left side into accumulator
-                if (/^[0-9]$/.test(leftNode.name)) {
-                    //load the number directly
-                    this.addInstruction("A9"); // LDA
-                    this.addInstruction("0" + leftNode.name);
-                } else {
-                    //it's a variable so look up the address
-                    let sym = this.symbolTable.lookupSymbol(leftNode.name);
-                    let leftAddr = sym!.tempAddress;
-                    this.addInstruction("AD") //LDA
-                    this.addInstruction(leftAddr);
-                    this.addInstruction("XX");
-                }
-                
-
-                //add right side to accumulator
-                this.addInstruction("6D"); // ADC
-                this.addInstruction(mathTemp);
-                this.addInstruction("XX");
-
-                //store final answer into target
+                //store in target variable
                 this.addInstruction("8D"); // STA
                 this.addInstruction(tempAddress);
                 this.addInstruction("XX");
+                
 
                 this.log(`Generated code for Assign: Addition stored in [${targetId}]`);
             }
@@ -314,33 +277,106 @@ export class CodeGenerator {
             let conditionNode = node.children[0];
             let blockNode = node.children[1];
 
-            if (conditionNode.name === "==") {
-                let leftVar = conditionNode.children[0].name;  // ex: b
-                let rightVal = conditionNode.children[1].name; // ex: true or false
+            if (conditionNode.name === "==" || conditionNode.name === "!=") {
+                let leftNode = conditionNode.children[0];  
+                let rightNode = conditionNode.children[1];
                 
-                let sym = this.symbolTable.lookupSymbol(leftVar);
-                let condAddress = sym!.tempAddress;
+                // let sym = this.symbolTable.lookupSymbol(leftVar);
+                // let condAddress = sym!.tempAddress;
 
-                //load x reg with right side, true is 1, false is 0
-                let hexValue = rightVal === "true" ? "01" : "00";
-                this.addInstruction("A2"); // LDX
-                this.addInstruction(hexValue);
+                let condAddress = "";
+
+                if (leftNode.name === "Plus") {
+                    condAddress = this.processAddition(leftNode);
+                }
+
+                //var or literal
+                if (/^[a-z]$/.test(leftNode.name)) {
+                    let sym = this.symbolTable.lookupSymbol(leftNode.name);
+                    condAddress = sym!.tempAddress;
+                }
+                else {
+                    //its a literal store in memory
+                    condAddress = "T" + this.tempCount;
+                    this.tempCount++;
+
+                    this.addInstruction("A9"); //LDA
+                    if (/^[0-9]$/.test(leftNode.name)) {
+                        this.addInstruction("0" + leftNode.name);
+                    } else {
+                        this.addInstruction(leftNode.name === "true" ? "01" : "00");
+                    }
+
+                    this.addInstruction("8D"); // STA
+                    this.addInstruction(condAddress);
+                    this.addInstruction("XX");
+                }
+
+                // //load x reg with right side
+                // this.addInstruction("A2"); // LDX
+                // if (/^[0-9]$/.test(rightVal)) {
+                //     this.addInstruction("0" + rightVal); //Load digit
+                // } else {
+                //     let hexValue = rightVal === "true" ? "01" : "00";
+                //     this.addInstruction(hexValue); // Load boolean
+                // }
+
+                //resolve the right side
+                if (rightNode.name === "Plus") {
+                    let mathTemp = this.processAddition(rightNode);
+                    this.addInstruction("AE"); // LDX from memory
+                    this.addInstruction(mathTemp);
+                    this.addInstruction("XX");
+                } else if (/^[a-z]$/.test(rightNode.name)) {
+                    let sym = this.symbolTable.lookupSymbol(rightNode.name);
+                    this.addInstruction("AE"); // LDX from memory
+                    this.addInstruction(sym!.tempAddress);
+                    this.addInstruction("XX");
+                } else if (/^[0-9]$/.test(rightNode.name)) {
+                    this.addInstruction("A2"); // LDX constant
+                    this.addInstruction("0" + rightNode.name);
+                } else {
+                    this.addInstruction("A2"); // LDX constant
+                    this.addInstruction(rightNode.name === "true" ? "01" : "00");
+                }
 
                 //compare x to left variable
                 this.addInstruction("EC"); // CPX
                 this.addInstruction(condAddress);
                 this.addInstruction("XX");
 
-                //branch on not equal
-                this.addInstruction("D0"); //BNE
 
-                //add a placeholder for jump distance
-                let jumpId = "J" + this.jumpCount;
-                this.jumpCount++;
-                this.addInstruction(jumpId);
+                let jumpIndex = 0;
 
-                //save index of where jumpId is
-                let jumpIndex = this.codePointer - 1;
+                if (conditionNode.name === "==") {
+                    //branch on not equal
+                    this.addInstruction("D0"); //BNE
+
+                    //add a placeholder for jump distance
+                    let jumpId = "J" + this.jumpCount;
+                    this.jumpCount++;
+                    this.addInstruction(jumpId);
+                    jumpIndex = this.codePointer - 1;
+                }
+                else if (conditionNode.name === "!=") {
+                    //if not equal, jump 7 bytes forward
+                    this.addInstruction("D0"); // BNE
+                    this.addInstruction("07"); 
+
+                    // If we fall through it is equal
+                    this.addInstruction("A2"); // LDX
+                    this.addInstruction("01"); 
+                    this.addInstruction("EC"); // CPX
+                    this.addInstruction("FF"); // Memory address 00FF
+                    this.addInstruction("00"); 
+                    this.addInstruction("D0"); // BNE
+
+                    let jumpId = "J" + this.jumpCount;
+                    this.jumpCount++;
+                    this.addInstruction(jumpId);
+                    jumpIndex = this.codePointer - 1;
+
+                }
 
                 //generate code
                 this.generateNode(blockNode);
@@ -354,6 +390,37 @@ export class CodeGenerator {
 
                 this.log(`Generated code for If Statement: Jump distance is ${hexDistance} bytes`);
             }
+            //if true
+            else if (conditionNode.name === "true") {
+                //just run the code
+                this.generateNode(blockNode);
+                this.log(`Generated code for If Statement: 'true' literal, block executed normally`);
+            }
+            //if false
+            else if (conditionNode.name === "false") {
+                //force jump over the block
+                this.addInstruction("A2"); // LDX
+                this.addInstruction("01"); 
+                this.addInstruction("EC"); // CPX
+                this.addInstruction("FF"); 
+                this.addInstruction("00");
+                this.addInstruction("D0"); // BNE (Always branches)
+                
+                let exitJumpId = "J" + this.jumpCount;
+                this.jumpCount++;
+                this.addInstruction(exitJumpId); 
+                let jumpIndex = this.codePointer - 1;
+
+                //generate the block
+                this.generateNode(blockNode);
+
+                //backpatch the jump
+                let distance = this.codePointer - (jumpIndex + 1);
+                let hexDistance = distance.toString(16).toUpperCase().padStart(2, "0");
+                this.executable[jumpIndex] = hexDistance;
+
+                this.log(`Generated code for If Statement: 'false' literal, skipped forward ${hexDistance} bytes`);
+            }
         }
 
         //while loops
@@ -362,22 +429,67 @@ export class CodeGenerator {
             let blockNode = node.children[1];
 
             if (conditionNode.name === "==" || conditionNode.name === "!=") {
-                let leftVar = conditionNode.children[0].name;  
-                let rightVal = conditionNode.children[1].name; 
+                let leftNode = conditionNode.children[0];  
+                let rightNode = conditionNode.children[1]; 
 
-                let sym = this.symbolTable.lookupSymbol(leftVar);
-                let condAddress = sym!.tempAddress;
+                // let sym = this.symbolTable.lookupSymbol(leftVar);
+                // let condAddress = sym!.tempAddress;
+                let condAddress = "";
+
+                if (leftNode.name === "Plus") {
+                    condAddress = this.processAddition(leftNode);
+                }
+
+                //variable or literal
+                if (/^[a-z]$/.test(leftNode.name)) {
+                    let sym = this.symbolTable.lookupSymbol(leftNode.name);
+                    condAddress = sym!.tempAddress;
+                } else {
+                    // store literal in memory
+                    condAddress = "T" + this.tempCount;
+                    this.tempCount++;
+
+                    this.addInstruction("A9"); // LDA constant
+                    if (/^[0-9]$/.test(leftNode.name)) {
+                        this.addInstruction("0" + leftNode.name);
+                    } else {
+                        this.addInstruction(leftNode.name === "true" ? "01" : "00");
+                    }
+                    
+                    this.addInstruction("8D"); // STA
+                    this.addInstruction(condAddress);
+                    this.addInstruction("XX");
+                }
 
                 //mark start of loop
                 let loopStartIndex = this.codePointer;
 
-                //evaluate condition
-                this.addInstruction("A2"); // LDX
-                if (/^[0-9]$/.test(rightVal)) {
-                    this.addInstruction("0" + rightVal); // Load digit
+                // //evaluate condition
+                // this.addInstruction("A2"); // LDX
+                // if (/^[0-9]$/.test(rightVal)) {
+                //     this.addInstruction("0" + rightVal); // Load digit
+                // } else {
+                //     let hexValue = rightVal === "true" ? "01" : "00";
+                //     this.addInstruction(hexValue); // Load boolean
+                // }
+
+                //resolve the right side
+                if (rightNode.name === "Plus") {
+                    let mathTemp = this.processAddition(rightNode);
+                    this.addInstruction("AE"); // LDX from memory
+                    this.addInstruction(mathTemp);
+                    this.addInstruction("XX");
+                } else if (/^[a-z]$/.test(rightNode.name)) {
+                    let sym = this.symbolTable.lookupSymbol(rightNode.name);
+                    this.addInstruction("AE"); // LDX from memory
+                    this.addInstruction(sym!.tempAddress);
+                    this.addInstruction("XX");
+                } else if (/^[0-9]$/.test(rightNode.name)) {
+                    this.addInstruction("A2"); // LDX constant
+                    this.addInstruction("0" + rightNode.name);
                 } else {
-                    let hexValue = rightVal === "true" ? "01" : "00";
-                    this.addInstruction(hexValue); // Load boolean
+                    this.addInstruction("A2"); // LDX constant
+                    this.addInstruction(rightNode.name === "true" ? "01" : "00");
                 }
 
                 this.addInstruction("EC"); // CPX
@@ -440,6 +552,55 @@ export class CodeGenerator {
 
                 this.log(`Generated code for While Loop: Rewinds ${hexBackward}, Exits forward ${hexForward}`);
             }
+            
+            //for infinite loops
+            else if (conditionNode.name === "true") {
+                let loopStartIndex = this.codePointer;
+
+                //generate the block
+                this.generateNode(blockNode);
+
+                //force jump backwards
+                this.addInstruction("A2"); // LDX
+                this.addInstruction("01"); 
+                this.addInstruction("EC"); // CPX
+                this.addInstruction("FF"); // Memory address 00FF (contains 00)
+                this.addInstruction("00");
+                this.addInstruction("D0"); // BNE (Always branches)
+
+                let currentOffset = this.codePointer + 1; 
+                let backwardDistance = currentOffset - loopStartIndex;
+                let hexBackward = (256 - backwardDistance).toString(16).toUpperCase().padStart(2, "0");
+                this.addInstruction(hexBackward);
+
+                this.log(`Generated code for While Loop: Infinite loop rewinds ${hexBackward} bytes`);
+            }
+
+            //dead loop
+            else if (conditionNode.name === "false") {
+                //force jump over block
+                this.addInstruction("A2"); // LDX
+                this.addInstruction("01"); 
+                this.addInstruction("EC"); // CPX
+                this.addInstruction("FF"); 
+                this.addInstruction("00");
+                this.addInstruction("D0"); // BNE (Always branches)
+                
+                let exitJumpId = "J" + this.jumpCount;
+                this.jumpCount++;
+                this.addInstruction(exitJumpId); 
+                let exitJumpIndex = this.codePointer - 1;
+
+                //generate block
+                this.generateNode(blockNode);
+
+                //backpatch jump
+                let forwardDistance = this.codePointer - (exitJumpIndex + 1);
+                let hexForward = forwardDistance.toString(16).toUpperCase().padStart(2, "0");
+                this.executable[exitJumpIndex] = hexForward;
+
+                this.log(`Generated code for While Loop: Dead loop skipped forward ${hexForward} bytes`);
+            }
         }
 
         else {
@@ -459,6 +620,66 @@ export class CodeGenerator {
         }
         this.executable[this.codePointer] = hex;
         this.codePointer++;
+    }
+
+    //help chained addition
+    private processAddition(exprNode: TreeNode): string {
+        let leftNode = exprNode.children[0];
+        let rightNode = exprNode.children[1];
+
+        //give addition temp spot in memory
+        let mathTemp = "T" + this.tempCount;
+        this.tempCount++;
+
+        //resolve right side
+        if (rightNode.name === "Plus") {
+            let mathTemp = this.processAddition(rightNode);
+            this.addInstruction("AD"); // LDA memory
+            this.addInstruction(mathTemp);
+            this.addInstruction("XX");
+        }
+        // else if (/^[a-z]$/.test(rightNode.name)) {
+        //     //Handle variables on the right side
+        //     let sym = this.symbolTable.lookupSymbol(rightNode.name);
+        //     this.addInstruction("AE"); 
+        //     this.addInstruction(sym!.tempAddress);
+        //     this.addInstruction("XX");
+
+        // } 
+        else if (/^[0-9]$/.test(rightNode.name)) {
+            this.addInstruction("A9"); // LDA constant
+            this.addInstruction("0" + rightNode.name);
+        } 
+        else {
+            // It's a variable
+            let sym = this.symbolTable.lookupSymbol(rightNode.name);
+            let rightAddr = sym!.tempAddress;
+            this.addInstruction("AD"); // LDA memory
+            this.addInstruction(rightAddr);
+            this.addInstruction("XX");
+        }
+
+        //store right side into temp
+        this.addInstruction("8D"); // STA
+        this.addInstruction(mathTemp);
+        this.addInstruction("XX");
+
+        //resolve left side
+        this.addInstruction("A9"); // LDA constant
+        this.addInstruction("0" + leftNode.name);
+
+        //add together
+        this.addInstruction("6D"); // ADC
+        this.addInstruction(mathTemp);
+        this.addInstruction("XX");
+
+        //save result
+        this.addInstruction("8D"); // STA
+        this.addInstruction(mathTemp);
+        this.addInstruction("XX");
+
+        //return where answer is saved
+        return mathTemp;
     }
 
     //format the memory array into a string for output
