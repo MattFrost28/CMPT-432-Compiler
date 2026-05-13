@@ -44,6 +44,11 @@ export class CodeGenerator {
     backpatch() {
         //loop through all variables created
         for (let i = 0; i < this.tempCount; i++) {
+            if (this.codePointer >= this.heapPointer) {
+                this.log("CODEGEN ERROR: Stack Overflow! Static variables collided with heap.");
+                this.errorFound = true;
+                return;
+            }
             let tempId = "T" + i;
             //real address is where code pointer is
             let realAddress = this.codePointer.toString(16).toUpperCase().padStart(2, "0");
@@ -65,6 +70,12 @@ export class CodeGenerator {
     addString(value) {
         //get rid of quotes from ast node
         let str = value.replace(/"/g, "");
+        //check if adding string will hit code
+        if (this.heapPointer - (str.length + 1) <= this.codePointer) {
+            this.log("CODEGEN ERROR: Stack Overflow! String heap collided with code.");
+            this.errorFound = true;
+            return "00";
+        }
         //strings must be 00-terminated
         this.executable[this.heapPointer] = "00";
         this.heapPointer--;
@@ -556,6 +567,10 @@ export class CodeGenerator {
     }
     //format the memory array into a string for output
     getExecutableString() {
+        //if we crashed, don't return any machine code
+        if (this.errorFound) {
+            return "COMPILATION ERROR: Memory limit exceeded (256 bytes). Machine Code not generated.";
+        }
         let output = "";
         for (let i = 0; i < this.executable.length; i++) {
             output += this.executable[i] + " ";
