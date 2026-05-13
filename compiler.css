@@ -1,11 +1,118 @@
-textarea { 
-    width: 100%; 
-    height: 200px; 
-    font-family: monospace; 
+:root {
+    --bg-main: #1e1e1e;
+    --bg-panel: #252526;
+    --text-main: #cccccc;
+    --text-accent: #4fc1ff;
+    --border-color: #333333;
+    --btn-bg: #0e639c;
+    --btn-hover: #1177bb;
 }
 
-.container { 
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Header styling */
+
+header {
+    background-color: var(--bg-panel);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    font-size: 1.2rem;
+    color: var(--text-accent);
+    font-weight: 600;
+}
+
+/* grid layout */
+main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    flex-grow: 1;
+    gap: 1px;
+    background-color: var(--border-color);
+}
+
+/* panel container*/
+.panel {
+    background-color: var(--bg-main);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.panel-header {
+    background-color: var(--bg-panel);
+    padding: 8px 15px;
+    font-size: .85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* text areas */
+textarea { 
+    flex-grow: 1;
+    width: 100%;
+    background-color: var(--bg-main);
+    color: #d4d4d4;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 15px;
+    border: none;
+    resize: none;
+    outline: none;
+}
+
+textarea:focus {
+    box-shadow: inset 0 0 0 1px var(--border-color);
+}
+
+/* button container */
+.button-container {
+    background-color: var(--bg-panel);
+    padding: 10px 15px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* compile button */
+#compile-btn {
+    background-color: var(--btn-bg);
+    color: white;
+    border: none;
+    padding: 8px 24px;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#compile-btn:hover {
+    background-color: var(--btn-hover);
+}
+
+/* .container { 
     max-width: 800px; 
     margin: auto; 
     padding: 20px; 
-}
+} */

@@ -3,19 +3,30 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>TypeScript Compiler</title>
+        <title>TypeScript 6502 Compiler</title>
         <link rel="stylesheet" href="compiler.css"> 
     </head>
     <body>
-        <div class="container">
-            <h2>Source Code Input</h2>
-            <textarea id="sourceCode">{ \n $\n}</textarea>
-            <br><br>
-            <button onclick="startCompile()">Compile</button>
-
-            <h2>Compiled Output</h2>
-            <textarea id="outputLog" readonly></textarea>
-        </div>
+        
+        <header>
+            <h1>Compiler Workspace</h1>
+        </header>
+        <main>
+            <div class="panel">
+                <div class = "panel-header">Source Code Input</div>
+                <textarea id="source-input" spellcheck = false>{
+}$</textarea>
+                
+                <div class = "button-container">
+                    <button id = "compile-btn" onclick="startCompile()">Compile Code</button>
+                </div>
+            </div>
+            
+            <div class = "panel">
+                <div class = "panel-header">Compiled Output / Logs</div>
+                <textarea id="console-output" readonly spellcheck = "false">Waiting for compilation...</textarea>
+            </div>
+        </main>
 
         <script type="module" src="distrib/compiler.js"></script>
     </body>

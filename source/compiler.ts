@@ -8,8 +8,8 @@ import { CodeGenerator } from "./codegen.js";
 // attach the function to global scope so it can be called from the HTML
 (window as any).startCompile = function() {
     // get html elements
-    const sourceInput = (document.getElementById("sourceCode") as HTMLInputElement).value;
-    const outputLog = document.getElementById("outputLog") as HTMLInputElement;
+    const sourceInput = (document.getElementById("source-input") as HTMLTextAreaElement).value;
+    const outputLog = document.getElementById("console-output") as HTMLTextAreaElement;
 
     // clear the output log
     outputLog.value = "Starting compilation...\n";
