@@ -37,6 +37,21 @@ export class SemanticAnalyzer {
             this.scopeCheck(this.ast.root);
         }
 
+        //check for warnings and hints
+        for (let symbol of this.symbolTable.symbols) {
+            if (!symbol.isUsed) {
+                // Case: Variable was never used at all
+                if (symbol.isInitialized) {
+                    // It was assigned a value but never read
+                    this.log(`SEMANTIC HINT: Variable [${symbol.name}] on line ${symbol.line} was initialized but never used.`);
+                } else {
+                    // It was declared but completely ignored
+                    this.log(`SEMANTIC HINT: Variable [${symbol.name}] on line ${symbol.line} was declared but never used or initialized.`);
+                }
+                this.warningCount++;
+            }
+        }
+
         //print the symbol table t othe log
         this.semanticLog.push(this.symbolTable.toString());
 

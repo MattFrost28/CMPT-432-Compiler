@@ -3,6 +3,7 @@ export class SymbolNode {
     constructor(name, type, scope, line) {
         this.isInitialized = false;
         this.isUsed = false;
+        this.tempAddress = "";
         this.name = name;
         this.type = type;
         this.scope = scope;

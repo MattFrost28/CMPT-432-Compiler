@@ -7,6 +7,7 @@ export class SymbolNode {
     line: number;
     isInitialized: boolean = false;
     isUsed: boolean = false;
+    tempAddress: string = "";
 
     constructor(name: string, type: string, scope: number, line: number) {
         this.name = name;

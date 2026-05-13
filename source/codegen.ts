@@ -32,14 +32,23 @@ export class CodeGenerator {
         this.codeLog.push(`DEBUG CodeGen - ${message}`);
     }
 
+    //stack overflow kill switch
+    private errorFound: boolean = false;
+
     //entry point for phase 4
     public generate(): void {
         this.log("Starting code generation...");
+        this.errorFound = false;
+
+        this.symbolTable.currentScope = -1;
 
         //start recursive ast traversal
         if (this.ast.root) {
             this.generateNode(this.ast.root);
         }
+
+        //stop if we crashed
+        if (this.errorFound) return;
 
         //when ast is fully traversed add the hex code for BRK
         this.addInstruction("00");
@@ -103,9 +112,11 @@ export class CodeGenerator {
         let name = node.name;
 
         if (name === "Block") {
+            this.symbolTable.enterScope();
             for (let child of node.children) {
                 this.generateNode(child);
             }
+            this.symbolTable.exitScope();
         }
         else if (name === "VarDecl") {
             // vardecl has 2 children, type and id
@@ -115,6 +126,11 @@ export class CodeGenerator {
             //make a temp addresss
             let tempAddress = "T" + this.tempCount;
             this.tempCount++;
+
+            let sym = this.symbolTable.lookupSymbol(varId);
+            if (sym) {
+                sym.tempAddress = tempAddress;
+            }
 
             //save it in static table
             this.staticTable.set(varId, tempAddress);
@@ -136,7 +152,9 @@ export class CodeGenerator {
         }
         else if (name === "Assign") {
             let targetId = node.children[0].name;
-            let tempAddress = this.staticTable.get(targetId)!;
+            let sym = this.symbolTable.lookupSymbol(targetId);
+            let tempAddress = sym!.tempAddress;
+            //let tempAddress = this.staticTable.get(targetId)!;
             let exprNode = node.children[1];
 
             //assigning a single digit
@@ -185,7 +203,8 @@ export class CodeGenerator {
                     this.addInstruction("0" + rightNode.name);
                 } else {
                     //it's a variable so look up the address
-                    let rightAddr = this.staticTable.get(rightNode.name)!;
+                    let sym = this.symbolTable.lookupSymbol(rightNode.name);
+                    let rightAddr = sym!.tempAddress;
                     this.addInstruction("AD") //LDA
                     this.addInstruction(rightAddr);
                     this.addInstruction("XX");
@@ -204,7 +223,8 @@ export class CodeGenerator {
                     this.addInstruction("0" + leftNode.name);
                 } else {
                     //it's a variable so look up the address
-                    let leftAddr = this.staticTable.get(leftNode.name)!;
+                    let sym = this.symbolTable.lookupSymbol(leftNode.name);
+                    let leftAddr = sym!.tempAddress;
                     this.addInstruction("AD") //LDA
                     this.addInstruction(leftAddr);
                     this.addInstruction("XX");
@@ -244,10 +264,13 @@ export class CodeGenerator {
 
             //printing integer
             if (exprNode.isLeaf && /^[a-z]$/.test(exprNode.name)) {
-                let tempAddress = this.staticTable.get(exprNode.name)!;
+                // let tempAddress = this.staticTable.get(exprNode.name)!;
 
-                //ask type table what type of variable
-                let varType = this.typeTable.get(exprNode.name)!;
+                // //ask type table what type of variable
+                // let varType = this.typeTable.get(exprNode.name)!;
+                let sym = this.symbolTable.lookupSymbol(exprNode.name);
+                let tempAddress = sym!.tempAddress;
+                let varType = sym!.type;
 
                 this.addInstruction("AC"); // LDY
                 this.addInstruction(tempAddress);
@@ -295,7 +318,8 @@ export class CodeGenerator {
                 let leftVar = conditionNode.children[0].name;  // ex: b
                 let rightVal = conditionNode.children[1].name; // ex: true or false
                 
-                let condAddress = this.staticTable.get(leftVar)!;
+                let sym = this.symbolTable.lookupSymbol(leftVar);
+                let condAddress = sym!.tempAddress;
 
                 //load x reg with right side, true is 1, false is 0
                 let hexValue = rightVal === "true" ? "01" : "00";
@@ -341,7 +365,8 @@ export class CodeGenerator {
                 let leftVar = conditionNode.children[0].name;  
                 let rightVal = conditionNode.children[1].name; 
 
-                let condAddress = this.staticTable.get(leftVar)!;
+                let sym = this.symbolTable.lookupSymbol(leftVar);
+                let condAddress = sym!.tempAddress;
 
                 //mark start of loop
                 let loopStartIndex = this.codePointer;
@@ -426,6 +451,8 @@ export class CodeGenerator {
 
     // add hex command to memory
     private addInstruction(hex: string): void {
+        if (this.errorFound) return;
+        
         if (this.codePointer >= this.heapPointer) {
             this.log("CODEGEN ERROR: Stack Overflow! No more memory available to generate code.");
             return;
